@@ -1,11 +1,11 @@
 import { entries } from "./funs";
-import { Cols, Row, RowOf, ScalarOf } from "./types";
+import { Col, Cols, Row, RowOf, ScalarOf } from "./types";
 
 export class Dataframe<T extends Cols> {
   constructor(public cols: T) {}
 
-  static fromRow = <U extends Row>(row: Row) => {
-    const cols = {} as Cols;
+  static fromRow = <U extends Row>(row: U) => {
+    const cols = {} as { [key in keyof U]: Col };
     for (const [k, v] of entries(row)) {
       cols[k] = v.toVariable();
     }

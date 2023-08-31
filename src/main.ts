@@ -2,11 +2,12 @@ import { Dataframe } from "./Dataframe";
 import { Factor } from "./structs/Factor";
 import { Part } from "./Part";
 import "./style.css";
-import { Scalar, num, str } from "./structs/Scalar";
+import { Scalar, ScalarNumeric, num, str } from "./structs/Scalar";
 import { Discrete, Numeric } from "./structs/Variable";
 import { ScalarOf } from "./types";
-import { entries, keys, values } from "./funs";
+import { POJO, entries, identity, keys, secondArgument, values } from "./funs";
 import { Partition } from "./Partition";
+import { Composer } from "./Composer";
 
 const data1 = new Dataframe({
   gender: new Discrete(["m", "m", "f", "f", "m", "f"]),
@@ -17,11 +18,25 @@ const data1 = new Dataframe({
 const f = () => Factor.from(["m", "m", "f", "f", "m", "f"]);
 
 console.log(f().indices);
+const composer1 = new Composer<{ income: ScalarNumeric }>(
+  { reducefn: secondArgument, initialfn: POJO },
+  identity,
+  { reducefn: secondArgument, initialfn: POJO }
+)
+  .setReducer(
+    ({ s1 }, { income }) => ({ s1: s1.add(income) }),
+    () => ({ s1: num(0) })
+  )
+  .setMapfn(({ s1 }) => ({ y1: s1 }))
+  .setStacker(
+    (parent, part) => ({ y1: parent.y1.add(part.y1) }),
+    () => ({ y1: num(0) })
+  );
 
-const partition1 = new Partition(data1, f);
+const partition1 = new Partition(data1, f, composer1);
+
 const data2 = partition1.compute();
-
-console.log(data2.rowUnwrapped(2));
+console.log(data2.rowUnwrapped(1));
 
 // const c = data1.cols;
 // const row1 = data1.row(0);
