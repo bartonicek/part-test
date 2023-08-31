@@ -1,4 +1,5 @@
-import { Numeric } from "./Variable";
+import { Dict } from "../types";
+import { Discrete, Numeric } from "./Variable";
 
 class Value<T> {
   constructor(private val: T) {}
@@ -13,13 +14,17 @@ class View<T> {
 type ValueLike<T> = Value<T> | View<T>;
 
 export class ScalarNumeric {
-  constructor(private valueLike: ValueLike<number>) {}
+  constructor(public valueLike: ValueLike<number>, private metadata?: Dict) {}
 
-  static fromValue = (value: number) => new ScalarNumeric(new Value(value));
-  static fromView = (array: number[], index: number) => {
-    return new ScalarNumeric(new View(array, index));
+  static fromValue = (value: number, metadata?: Dict) => {
+    return new ScalarNumeric(new Value(value), metadata);
   };
 
+  static fromView = (array: number[], index: number, metadata?: Dict) => {
+    return new ScalarNumeric(new View(array, index), metadata);
+  };
+
+  meta = () => this.metadata;
   value = () => this.valueLike.value();
   toVariable = () => new Numeric([this.valueLike.value()]);
 
@@ -41,7 +46,7 @@ export class ScalarNumeric {
 }
 
 export class ScalarDiscrete {
-  constructor(private valueLike: ValueLike<string | number>) {}
+  constructor(public valueLike: ValueLike<string | number>) {}
 
   static fromValue = (value: string | number) => {
     return new ScalarDiscrete(new Value(value));
@@ -52,11 +57,15 @@ export class ScalarDiscrete {
   };
 
   value = () => this.valueLike.value();
+  toVariable = () => new Discrete([this.valueLike.value().toString()]);
 
   paste = (other: ScalarDiscrete) => {
     return ScalarDiscrete.fromValue(`${this.value()}${other.value()}`);
   };
 }
+
+export const num = (x: number) => ScalarNumeric.fromValue(x);
+export const str = (x: string) => ScalarDiscrete.fromValue(x);
 
 export type Scalar<T> = T extends string
   ? ScalarDiscrete

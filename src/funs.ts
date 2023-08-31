@@ -1,11 +1,14 @@
 import { Dict } from "./types";
 
+// Classic higher order functions
 export const identity = <T>(x: T) => x;
 export const secondArgument = <T>(x: any, y: T) => y;
 export const POJO = () => ({});
 
+// Binary functions
 export const diff = (x: number, y: number) => x - y;
 
+// Array functions
 export const minMax = (x: number[]) => {
   return x.reduce(
     ([min, max], e) => [Math.min(min, e), Math.max(max, e)],
@@ -27,6 +30,17 @@ export const summarizeNumeric = (x: number[]) => {
 const collatorOpts = { numeric: true, sensitivity: "base" } as const;
 const collator = new Intl.Collator(undefined, collatorOpts);
 export const sortStrings = (x: string[]) => x.sort(collator.compare);
+
+// Object functions
+export const keys = <T extends Dict, K extends keyof T>(x: T) => {
+  return Object.keys(x) as K[];
+};
+export const values = <T extends Dict, K extends keyof T>(x: T) => {
+  return Object.values(x) as T[K][];
+};
+export const entries = <T extends Dict, K extends keyof T>(x: T) => {
+  return Object.entries(x) as { [key in K]: [key, T[key]] }[K][];
+};
 
 export const disjointUnion = <T extends Dict, U extends Dict>(
   object1: T,

@@ -13,10 +13,10 @@ export class Factor implements Variable<string> {
   ) {}
 
   ith = (index: number) => {
-    return ScalarDiscrete.fromValue(
-      this.indexLabels[this.indexArray[index]].level
-    );
+    return ScalarDiscrete.fromValue(this.indexArray[index]);
   };
+
+  push = (scalar: ScalarDiscrete) => {};
 
   static from = <T extends string | number>(array: T[], levels?: T[]) => {
     levels = levels ?? Array.from(new Set(array));
@@ -32,11 +32,14 @@ export class Factor implements Variable<string> {
     let k = 0;
 
     for (const v of levs.values()) {
-      if (!(v in labelIndexMap)) labelIndexMap[v] = k++;
+      if (!(v in labelIndexMap)) {
+        labelIndexMap[v] = k;
+        indices.add(k);
+        k++;
+      }
       const index = labelIndexMap[v];
       indexLabels[index] = { level: v };
       indexPositons[index] = [];
-      indices.add(k);
     }
 
     for (let i = 0; i < array.length; i++) {

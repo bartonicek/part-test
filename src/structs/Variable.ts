@@ -6,6 +6,7 @@ import { Scalar, ScalarDiscrete, ScalarNumeric } from "./Scalar";
 export type Variable<T> = {
   meta: Record<string, any>;
   ith: (index: number) => Scalar<T>;
+  push: (scalar: Scalar<T>) => void;
 };
 
 export class Numeric implements Variable<number> {
@@ -16,6 +17,15 @@ export class Numeric implements Variable<number> {
   }
 
   ith = (index: number) => ScalarNumeric.fromValue(this.array[index]);
+
+  push = (scalar: ScalarNumeric) => {
+    const value = scalar.value();
+    this.meta.n++;
+    this.meta.min = Math.min(this.meta.min, value);
+    this.meta.max = Math.max(this.meta.max, value);
+    this.meta.sum += value;
+    this.array.push(value);
+  };
 }
 
 export class Discrete implements Variable<string> {
@@ -26,6 +36,10 @@ export class Discrete implements Variable<string> {
   }
 
   ith = (index: number) => ScalarDiscrete.fromValue(this.array[index]);
+
+  push = (scalar: ScalarDiscrete) => {
+    this.array.push(scalar.value().toString());
+  };
 
   toFactor = () => Factor.from(this.array);
 }

@@ -1,28 +1,35 @@
 import { Accessor, createMemo } from "solid-js";
 import { Dataframe } from "./Dataframe";
 import { POJO, identity, secondArgument } from "./funs";
-import { stackSymbol } from "./main";
-import { JustFn, MapFn, ReduceFn, Reducer, Stacker } from "./types";
+import { Cols, JustFn, MapFn, ReduceFn, Reducer, Row, RowOf } from "./types";
 
-export class Part {
-  data: Dataframe;
-  parent?: Part;
-  indices: number[];
+const stackSymbol = Symbol("stack");
 
-  reducer: Reducer<any, any>;
-  mapfn: MapFn<any, any>;
-  stacker: Stacker<any, any>;
+type SetSecond<T, X extends Row> = T extends Part<infer A, infer _, infer C>
+  ? Part<A, X, C>
+  : never;
+type SetThird<T, X extends Row> = T extends Part<infer A, infer B, infer _>
+  ? Part<A, B, X>
+  : never;
+
+export class Part<T extends Cols, U extends Row, V extends Row> {
+  reducer: Reducer<RowOf<T>, U>;
+  mapfn: MapFn<U, V>;
+  stacker: Reducer<Partial<V>, Partial<V>>;
 
   computed: Accessor<any>;
 
-  constructor(data: Dataframe, indices: number[], parent?: Part) {
-    this.data = data;
-    this.parent = parent;
-    this.indices = indices;
-
-    this.mapfn = identity;
-    this.reducer = { reducefn: secondArgument, initialfn: POJO };
-    this.stacker = { stackfn: secondArgument, initialfn: POJO };
+  constructor(
+    public data: Dataframe<T>,
+    public indices: number[],
+    public parent?: Part<any, any, any>
+  ) {
+    this.reducer = {
+      reducefn: secondArgument as ReduceFn<RowOf<T>, U>,
+      initialfn: POJO as JustFn<U>,
+    };
+    this.mapfn = identity as MapFn<U, V>;
+    this.stacker = { reducefn: secondArgument, initialfn: POJO };
 
     this.computed = this.compute;
   }
@@ -32,18 +39,30 @@ export class Part {
     return this;
   };
 
-  setReducer = (reducefn: ReduceFn<any, any>, initialfn: JustFn<any>) => {
-    this.reducer = { reducefn, initialfn };
-    return this;
+  setReducer = <W extends Row>(
+    reducefn: ReduceFn<RowOf<T>, W>,
+    initialfn: JustFn<W>
+  ) => {
+    this.reducer = {
+      reducefn: reducefn as unknown as ReduceFn<RowOf<T>, U>,
+      initialfn: initialfn as unknown as JustFn<U>,
+    };
+    return this as unknown as SetSecond<typeof this, W>;
   };
 
-  setMapfn = (mapfn: MapFn<any, any>) => {
-    this.mapfn = mapfn;
-    return this;
+  setMapfn = <X extends Row>(mapfn: MapFn<U, X>) => {
+    this.mapfn = mapfn as unknown as MapFn<U, V>;
+    return this as unknown as SetThird<typeof this, X>;
   };
 
-  setStacker = (stackfn: ReduceFn<any, any>, initialfn: JustFn<any>) => {
-    this.stacker = { stackfn, initialfn };
+  setStacker = <Y extends Partial<V>>(
+    stackfn: ReduceFn<Y, Y>,
+    initialfn: JustFn<Y>
+  ) => {
+    this.stacker = {
+      reducefn: stackfn as unknown as ReduceFn<Partial<V>, Partial<V>>,
+      initialfn,
+    };
     return this;
   };
 
@@ -51,20 +70,25 @@ export class Part {
     const { data, indices, parent, mapfn } = this;
     const { reducefn, initialfn } = this.reducer;
 
-    let result = initialfn();
-    for (const i of indices) result = reducefn(result, data.row(i));
+    let reduceResult = initialfn();
+    for (const i of indices) {
+      reduceResult = reducefn(reduceResult, data.row(i));
+    }
 
-    result = mapfn(result);
-    result[stackSymbol] = this.stacker.initialfn();
+    const mapResult = mapfn(reduceResult) as V & { [stackSymbol]: any };
+    mapResult[stackSymbol] = this.stacker.initialfn();
 
-    if (!parent) return result;
+    if (!parent) return mapResult;
 
-    const { stackfn } = this.stacker;
+    const { reducefn: stackfn } = this.stacker;
 
     const parentComputed = parent.computed();
-    parentComputed[stackSymbol] = stackfn(parentComputed[stackSymbol], result);
-    Object.assign(result, parentComputed[stackSymbol]);
+    parentComputed[stackSymbol] = stackfn(
+      parentComputed[stackSymbol],
+      mapResult
+    );
+    Object.assign(mapResult, parentComputed[stackSymbol]);
 
-    return result;
+    return mapResult;
   };
 }

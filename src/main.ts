@@ -2,21 +2,29 @@ import { Dataframe } from "./Dataframe";
 import { Factor } from "./structs/Factor";
 import { Part } from "./Part";
 import "./style.css";
-import { Scalar } from "./structs/Scalar";
+import { Scalar, num, str } from "./structs/Scalar";
+import { Discrete, Numeric } from "./structs/Variable";
+import { ScalarOf } from "./types";
+import { entries, keys, values } from "./funs";
+import { Partition } from "./Partition";
 
-// export const stackSymbol = Symbol("stack");
+const data1 = new Dataframe({
+  gender: new Discrete(["m", "m", "f", "f", "m", "f"]),
+  income: new Numeric([100, 200, 150, 300, 400, 200]),
+  age: new Numeric([29, 30, 37, 21, 32, 35]),
+});
 
-// const data1 = new Dataframe([
-//   { name: "Adam", age: 28 },
-//   { name: "Adam", age: 31 },
-//   { name: "Nela", age: 22 },
-//   { name: "Nela", age: 25 },
-//   { name: "Nela", age: 27 },
-// ]);
+const f = () => Factor.from(["m", "m", "f", "f", "m", "f"]);
 
-// const factor1 = Factor.from(["a", "a", "b", "c", "b", "a"]);
+console.log(f().indices);
 
-// console.log(factor1.indexSets);
+const partition1 = new Partition(data1, f);
+const data2 = partition1.compute();
+
+console.log(data2.rowUnwrapped(2));
+
+// const c = data1.cols;
+// const row1 = data1.row(0);
 
 // const part0 = new Part(data1, [0, 1, 2, 3, 4]);
 // const part1 = new Part(data1, [0, 1, 2], part0);
@@ -26,23 +34,29 @@ import { Scalar } from "./structs/Scalar";
 // parts.forEach((part) => {
 //   part
 //     .setReducer(
-//       ({ s1, s2 }, { age, name }) => ({ s1: s1 + age, s2: s2 + name }),
-//       () => ({ s1: 0, s2: "" })
+//       ({ s1 }, { age }) => ({
+//         s1: s1.add(age),
+//       }),
+//       () => ({ s1: num(0) })
 //     )
-//     .setMapfn(({ s1, s2 }) => ({ elol: s1, elololo: s2 }))
+//     .setMapfn(({ s1 }) => ({ x0: s1 }))
 //     .setStacker(
-//       (parent, part) => ({ elol: parent.elol + part.elol }),
-//       () => ({ elol: 0 })
+//       (parent, part) => ({ x0: parent.x0.add(part.x0) }),
+//       () => ({ x0: num(0) })
 //     )
 //     .update();
 // });
 
-// parts.forEach((e) => console.log(e.computed()));
+// const x = part0;
 
-const gender = ["male", "male", "female", "male", "female"];
-const group = ["A", "B", "B", "A", "B"];
+// for (const part of parts) {
+//   for (const val of values(part.computed())) console.log(val.value());
+// }
 
-const gef = Factor.from(gender);
-const grf = Factor.from(group);
+// const gender = ["male", "male", "female", "male", "female"];
+// const group = ["A", "B", "B", "A", "B"];
 
-console.log(Factor.product(gef, grf));
+// const gef = Factor.from(gender);
+// const grf = Factor.from(group);
+
+// console.log(Factor.product(gef, grf));
