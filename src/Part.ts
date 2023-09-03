@@ -1,26 +1,19 @@
 import { Accessor, createMemo } from "solid-js";
-import { Dataframe } from "./Dataframe";
-import { POJO, identity, secondArgument } from "./funs";
-import { Cols, JustFn, MapFn, ReduceFn, Reducer, Row, RowOf } from "./types";
 import { Composer } from "./Composer";
+import { Dataframe } from "./Dataframe";
+import { flow } from "./funs";
 
 const stackSymbol = Symbol("stack");
 
-type SetSecond<T, X extends Row> = T extends Part<infer A, infer _, infer C>
-  ? Part<A, X, C>
-  : never;
-type SetThird<T, X extends Row> = T extends Part<infer A, infer B, infer _>
-  ? Part<A, B, X>
-  : never;
-
-export class Part<T extends Cols, U extends Row, V extends Row> {
+export class Part {
   computed: Accessor<any>;
 
   constructor(
-    public data: Dataframe<T>,
+    public data: Dataframe<any>,
     public indices: number[],
+    public labels: Record<string, any>,
     public composer: Composer<any, any, any>,
-    public parent?: Part<any, any, any>
+    public parent?: Part
   ) {
     this.computed = this.compute;
   }
@@ -31,22 +24,42 @@ export class Part<T extends Cols, U extends Row, V extends Row> {
   };
 
   compute = () => {
-    const { data, indices, parent } = this;
-    const { reducer, mapfn, stacker } = this.composer;
+    const { reduce, map, stack } = this;
+    return flow(reduce, map, stack)();
+  };
 
-    const { reducefn, initialfn } = reducer;
+  reduce = () => {
+    if (!this.composer.state.reduced) return this.data;
+
+    const { data, indices } = this;
+    const { reducefn, initialfn } = this.composer.reducer;
 
     let reduceResult = initialfn();
     for (const i of indices) {
       reduceResult = reducefn(reduceResult, data.row(i));
     }
 
-    const mapResult = mapfn(reduceResult) as V & { [stackSymbol]: any };
+    return reduceResult;
+  };
+
+  map = (reduceResult: ReturnType<typeof this.reduce>) => {
+    if (!this.composer.state.mapped) return reduceResult;
+
+    const { labels } = this;
+    const { mapfn, stacker } = this.composer;
+
+    const mapResult = mapfn({ ...reduceResult, ...labels });
     mapResult[stackSymbol] = stacker.initialfn();
 
-    if (!parent) return mapResult;
+    return mapResult;
+  };
 
-    const parentComputed = parent.computed();
+  stack = (mapResult: ReturnType<typeof this.map>) => {
+    if (!(this.composer.state.stacked && this.parent)) return mapResult;
+
+    const { stacker } = this.composer;
+    const parentComputed = this.parent.computed();
+
     parentComputed[stackSymbol] = stacker.reducefn(
       parentComputed[stackSymbol],
       mapResult

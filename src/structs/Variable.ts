@@ -1,7 +1,7 @@
-import { summarizeNumeric } from "../funs";
+import { sortStrings, summarizeNumeric } from "../funs";
 import { SummaryNumeric } from "../types";
 import { Factor } from "./Factor";
-import { Scalar, ScalarDiscrete, ScalarNumeric } from "./Scalar";
+import { Scalar, Disc, Num } from "./Scalar";
 
 export type Variable<T> = {
   meta: Record<string, any>;
@@ -9,16 +9,16 @@ export type Variable<T> = {
   push: (scalar: Scalar<T>) => void;
 };
 
-export class Numeric implements Variable<number> {
+export class NumArray implements Variable<number> {
   meta: SummaryNumeric;
 
   constructor(private array: number[]) {
     this.meta = summarizeNumeric(array);
   }
 
-  ith = (index: number) => ScalarNumeric.fromValue(this.array[index]);
+  ith = (index: number) => Num.fromValue(this.array[index]);
 
-  push = (scalar: ScalarNumeric) => {
+  push = (scalar: Num) => {
     const value = scalar.value();
     this.meta.n++;
     this.meta.min = Math.min(this.meta.min, value);
@@ -28,17 +28,19 @@ export class Numeric implements Variable<number> {
   };
 }
 
-export class Discrete implements Variable<string> {
+export class DiscArray implements Variable<string> {
   meta: Record<string, any>;
 
   constructor(private array: string[]) {
-    this.meta = {};
+    this.meta = { levels: sortStrings(Array.from(new Set(array))) };
   }
 
-  ith = (index: number) => ScalarDiscrete.fromValue(this.array[index]);
+  ith = (index: number) => Disc.fromValue(this.array[index]);
 
-  push = (scalar: ScalarDiscrete) => {
-    this.array.push(scalar.value().toString());
+  push = (scalar: Disc) => {
+    const value = scalar.value().toString();
+    if (this.meta.levels.indexOf(value) === -1) this.meta.levels.push(value);
+    this.array.push(value);
   };
 
   toFactor = () => Factor.from(this.array);

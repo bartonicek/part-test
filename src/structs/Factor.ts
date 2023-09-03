@@ -1,6 +1,6 @@
 import { diff, disjointUnion, minMax, sortStrings } from "../funs";
 import { Primitive } from "../types";
-import { ScalarDiscrete } from "./Scalar";
+import { Disc, disc, num } from "./Scalar";
 import { Variable } from "./Variable";
 
 export class Factor implements Variable<string> {
@@ -13,10 +13,10 @@ export class Factor implements Variable<string> {
   ) {}
 
   ith = (index: number) => {
-    return ScalarDiscrete.fromValue(this.indexArray[index]);
+    return Disc.fromValue(this.indexArray[index]);
   };
 
-  push = (scalar: ScalarDiscrete) => {};
+  push = (scalar: Disc) => {};
 
   static from = <T extends string | number>(array: T[], levels?: T[]) => {
     levels = levels ?? Array.from(new Set(array));
@@ -38,7 +38,7 @@ export class Factor implements Variable<string> {
         k++;
       }
       const index = labelIndexMap[v];
-      indexLabels[index] = { level: v };
+      indexLabels[index] = { level: disc(v) };
       indexPositons[index] = [];
     }
 
@@ -80,7 +80,10 @@ export class Factor implements Variable<string> {
 
       if (j < 1) continue;
       indexPositions[j - 1] = [];
-      indexLabels[j - 1] = { binMin: breaks[j - 1], binMax: breaks[j] };
+      indexLabels[j - 1] = {
+        binMin: num(breaks[j - 1]),
+        binMax: num(breaks[j]),
+      };
     }
 
     for (let i = 0; i < array.length; i++) {

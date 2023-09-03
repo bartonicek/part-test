@@ -1,77 +1,70 @@
-import { Dataframe } from "./Dataframe";
-import { Factor } from "./structs/Factor";
-import { Part } from "./Part";
-import "./style.css";
-import { Scalar, ScalarNumeric, num, str } from "./structs/Scalar";
-import { Discrete, Numeric } from "./structs/Variable";
-import { ScalarOf } from "./types";
-import { POJO, entries, identity, keys, secondArgument, values } from "./funs";
-import { Partition } from "./Partition";
+import { createSignal } from "solid-js";
 import { Composer } from "./Composer";
+import { Dataframe } from "./Dataframe";
+import { Partition } from "./Partition";
+import { SignalStore } from "./SignalStore";
+import { Wrangler } from "./Wrangler";
+import { getData, keys } from "./funs";
+import { Factor } from "./structs/Factor";
+import { Num, disc, num } from "./structs/Scalar";
+import { DiscArray, NumArray } from "./structs/Variable";
+import "./style.css";
+import { Expanse, ExpanseSetter } from "./scales.ts/Expanse";
+import { Signal } from "./structs/ValueLike";
+import { ScaleContinuous, ScaleDiscrete } from "./scales.ts/Scale";
+import { Plot } from "./dom/Plots";
 
-const data1 = new Dataframe({
-  gender: new Discrete(["m", "m", "f", "f", "m", "f"]),
-  income: new Numeric([100, 200, 150, 300, 400, 200]),
-  age: new Numeric([29, 30, 37, 21, 32, 35]),
+const mpg = await getData("./testData/mpg.json");
+const dataMpg = Dataframe.parseCols(mpg, {
+  hwy: "num",
+  manufacturer: "disc",
 });
 
-const f = () => Factor.from(["m", "m", "f", "f", "m", "f"]);
-
-console.log(f().indices);
-const composer1 = new Composer<{ income: ScalarNumeric }>(
-  { reducefn: secondArgument, initialfn: POJO },
-  identity,
-  { reducefn: secondArgument, initialfn: POJO }
-)
+const store = SignalStore.fromDict(dataMpg.cols);
+const composer1 = Composer.default<{ var2: Num }>()
   .setReducer(
-    ({ s1 }, { income }) => ({ s1: s1.add(income) }),
-    () => ({ s1: num(0) })
+    ({ sum1 }, { var2 }) => ({ sum1: sum1.add(var2) }),
+    () => ({ sum1: num(0) })
   )
-  .setMapfn(({ s1 }) => ({ y1: s1 }))
+  .setMapfn(({ sum1, level }) => ({ y1: sum1, x0: level }))
   .setStacker(
     (parent, part) => ({ y1: parent.y1.add(part.y1) }),
     () => ({ y1: num(0) })
   );
 
-const partition1 = new Partition(data1, f, composer1);
+const wrangler1 = new Wrangler(
+  dataMpg.select({ var1: "manufacturer", var2: "hwy" }),
+  store,
+  composer1
+);
 
-const data2 = partition1.compute();
-console.log(data2.rowUnwrapped(1));
+const [lwr, setLwr] = createSignal(0);
+const [upr, setUpr] = createSignal(100);
 
-// const c = data1.cols;
-// const row1 = data1.row(0);
+const [lwr2, setLwr2] = createSignal(0.1);
+const [upr2, setUpr2] = createSignal(0.9);
 
-// const part0 = new Part(data1, [0, 1, 2, 3, 4]);
-// const part1 = new Part(data1, [0, 1, 2], part0);
-// const part2 = new Part(data1, [3, 4], part0);
+const [lwr3, setLwr3] = createSignal(0);
+const [upr3, setUpr3] = createSignal(500);
 
-// const parts = [part0, part1, part2];
-// parts.forEach((part) => {
-//   part
-//     .setReducer(
-//       ({ s1 }, { age }) => ({
-//         s1: s1.add(age),
-//       }),
-//       () => ({ s1: num(0) })
-//     )
-//     .setMapfn(({ s1 }) => ({ x0: s1 }))
-//     .setStacker(
-//       (parent, part) => ({ x0: parent.x0.add(part.x0) }),
-//       () => ({ x0: num(0) })
-//     )
-//     .update();
-// });
+const domain = new Expanse(lwr, upr);
+const codomain = new Expanse(lwr3, upr3);
+const expand = new Expanse(lwr2, upr2);
 
-// const x = part0;
+const scale1 = new ScaleContinuous(domain, codomain, expand);
 
-// for (const part of parts) {
-//   for (const val of values(part.computed())) console.log(val.value());
-// }
+const [gender, setGender] = createSignal(["m", "f"]);
 
-// const gender = ["male", "male", "female", "male", "female"];
-// const group = ["A", "B", "B", "A", "B"];
+const scale2 = new ScaleDiscrete(gender, codomain, expand);
 
-// const gef = Factor.from(gender);
-// const grf = Factor.from(group);
+const expandSetter = new ExpanseSetter(setLwr2, setUpr2);
+expandSetter.freezeLower();
 
-// console.log(Factor.product(gef, grf));
+console.log(expand.range());
+expandSetter.setLower(-0.1);
+console.log(expand.range());
+
+const f = { a: 1, b: 2, 3: 4 };
+const keys1 = keys(f);
+
+for (const key of keys(f)) f[key] = 0;

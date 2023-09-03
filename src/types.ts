@@ -1,5 +1,5 @@
-import { Scalar, ScalarDiscrete, ScalarNumeric } from "./structs/Scalar";
-import { Discrete, Numeric, Variable } from "./structs/Variable";
+import { Scalar, Disc, Num } from "./structs/Scalar";
+import { DiscArray, NumArray, Variable } from "./structs/Variable";
 
 export type Primitive = string | number | boolean;
 export type Dict = Record<string, any>;
@@ -18,20 +18,20 @@ export type SummaryNumeric = {
   sum: number;
 };
 
-export type Col = Numeric | Discrete;
-export type Row = { [key in string]: ScalarNumeric | ScalarDiscrete };
+export type Col = NumArray | DiscArray;
+export type Row = { [key in string]: Num | Disc };
 export type Cols = Record<string, Col>;
 
-export type ScalarOf<T> = T extends Numeric
-  ? ScalarNumeric
-  : T extends Discrete
-  ? ScalarDiscrete
+export type ScalarOf<T> = T extends NumArray
+  ? Num
+  : T extends DiscArray
+  ? Disc
   : never;
 
-export type VariableOf<T> = T extends ScalarNumeric
-  ? Numeric
-  : T extends ScalarDiscrete
-  ? Discrete
+export type VariableOf<T> = T extends Num
+  ? NumArray
+  : T extends Disc
+  ? DiscArray
   : never;
 
 export type RowOf<T extends Record<string, Col>> = {
