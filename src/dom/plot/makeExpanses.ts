@@ -3,15 +3,16 @@ import { just } from "../../funs";
 import { Expanse } from "../../scales.ts/Expanse";
 import { PlotStore } from "./makePlotStore";
 
-export const makeExpanses = (store: PlotStore) => {
-  const expanses = {
-    outerHorizontal: Expanse.default(),
-    innnerHorizontal: Expanse.default(),
-    outerVertical: Expanse.default(),
-    innerVertical: Expanse.default(),
+const makeExpanses = () => {
+  return {
+    outerH: Expanse.default(),
+    outerV: Expanse.default(),
+    innerH: Expanse.default(),
+    innerV: Expanse.default(),
     normX: Expanse.default(),
     normY: Expanse.default(),
   };
-
-  return expanses;
 };
+
+export type PlotExpanses = ReturnType<typeof makeExpanses>;
+export default makeExpanses;

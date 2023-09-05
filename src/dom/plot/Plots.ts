@@ -1,43 +1,63 @@
 import html from "solid-js/html";
-import { PlotStore, makePlotStore } from "./makePlotStore";
+import { just } from "../../funs";
+import makeExpanses, { PlotExpanses } from "./makeExpanses";
+import makePlotStore, { PlotStore } from "./makePlotStore";
+import makeScales, { PlotScales } from "./makeScales";
 import { onResize } from "./plotEventHandlers";
-import { Expanse } from "../../scales.ts/Expanse";
-import { just, keys } from "../../funs";
+import Scene from "../scene/Scene";
 
-const expanseKeys = [
-  "outerHorizontal",
-  "innerHorizontal",
-  "outerVertical",
-  "innerVertical",
-  "dataX",
-  "dataY",
-  "normX",
-  "normY",
-] as const;
-type ExpanseKeys = (typeof expanseKeys)[number];
-
-export class Plot {
+export default class Plot {
+  scene?: Scene;
   container: HTMLDivElement;
+  contexts: Record<string | number, CanvasRenderingContext2D>;
+
   store: PlotStore;
-  expanses: { [key in ExpanseKeys]: Expanse };
+  expanses: PlotExpanses;
+  scales: PlotScales;
 
   constructor() {
-    this.container = html`<div></div>` as HTMLDivElement;
+    this.container = html`<div
+      class="plotscape-container"
+    ></div>` as HTMLDivElement;
+    this.container.addEventListener("resize", onResize(this));
+    this.contexts = {};
+
     const store = makePlotStore();
     this.store = store;
 
-    this.container.addEventListener("resize", onResize(this));
+    const expanses = makeExpanses();
+    this.expanses = expanses;
 
-    const expanses = {} as { [key in ExpanseKeys]: Expanse };
-    for (const key of expanseKeys) expanses[key] = Expanse.default();
-
-    expanses.outerHorizontal.setSignals(just(0), store.width);
-    expanses.innerHorizontal.setSignals(just(0), store.innerWidth);
-    expanses.outerVertical.setSignals(just(0), store.height);
-    expanses.innerVertical.setSignals(just(0), store.innerHeight);
+    expanses.outerH.setSignals(just(0), store.width);
+    expanses.outerV.setSignals(just(0), store.height);
+    expanses.innerH.setSignals(store.innerLeft, store.innerRight);
+    expanses.innerV.setSignals(store.innerBottom, store.innerTop);
     expanses.normX.setSignals(store.normXLower, store.normXUppper);
     expanses.normY.setSignals(store.normYLower, store.normYUpper);
 
-    this.expanses = expanses;
+    const scales = makeScales();
+    this.scales = scales;
+
+    scales.outerX.setCodomain(expanses.outerH).setNorm(expanses.normX);
+    scales.outerY.setCodomain(expanses.outerV).setNorm(expanses.normY);
+    scales.innerX.setCodomain(expanses.innerH).setNorm(expanses.normX);
+    scales.innerY.setCodomain(expanses.innerV).setNorm(expanses.normY);
   }
+
+  registerScene = (scene: Scene) => {
+    this.scene = scene;
+    this.scene.app.appendChild(this.container);
+    return this;
+  };
+
+  activate = () => {
+    this.store.setActive(true);
+    this.container.classList.add("active");
+  };
+
+  deactivate = () => {
+    this.store.setActive(false);
+    this.container.classList.remove("active");
+    // clear(this.contexts.user);
+  };
 }

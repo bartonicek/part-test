@@ -1,6 +1,6 @@
-import { POJO, identity, secondArgument } from "./funs";
-import { Disc, Num } from "./structs/Scalar";
-import { JustFn, MapFn, ReduceFn, Reducer, Row } from "./types";
+import { POJO, identity, secondArgument } from "../funs";
+import { Disc, Num } from "../structs/Scalar";
+import { JustFn, MapFn, ReduceFn, Reducer, Row } from "../types";
 
 type FactorScalar = {
   level: Disc;
@@ -18,7 +18,7 @@ const noOp = {
   stacked: false,
 };
 
-export class Composer<T extends Row, U = Row, V = Partial<Row>> {
+export default class Composer<T extends Row, U = Row, V = Partial<Row>> {
   constructor(
     public reducer: Reducer<T, U>,
     public mapfn: MapFn<U, V>,

@@ -1,7 +1,7 @@
 import { sortStrings, summarizeNumeric } from "../funs";
 import { SummaryNumeric } from "../types";
-import { Factor } from "./Factor";
-import { Scalar, Disc, Num } from "./Scalar";
+import Factor from "./Factor";
+import { Disc, Num, Scalar } from "./Scalar";
 
 export type Variable<T> = {
   meta: Record<string, any>;

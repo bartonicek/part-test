@@ -56,6 +56,7 @@ export const values = <T extends Dict, K extends keyof T>(x: T) => {
 export const entries = <T extends Dict, K extends keyof T>(x: T) => {
   return Object.entries(x) as { [key in K]: [key, T[key]] }[K][];
 };
+export const firstProp = <T extends Dict>(x: T) => x[Object.keys(x)[0]];
 
 export const disjointUnion = <T extends Dict, U extends Dict>(
   object1: T,

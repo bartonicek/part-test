@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 import { just } from "../../funs";
 import { ExpanseSetter } from "../../scales.ts/Expanse";
 
-export const makePlotStore = () => {
+const makePlotStore = () => {
   const [active, setActive] = createSignal(false);
 
   const [width, setWidth] = createSignal(0);
@@ -98,4 +98,5 @@ export const makePlotStore = () => {
   return store;
 };
 
+export default makePlotStore;
 export type PlotStore = ReturnType<typeof makePlotStore>;

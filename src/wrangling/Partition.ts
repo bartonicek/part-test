@@ -1,12 +1,12 @@
 import { Accessor, createMemo } from "solid-js";
-import { Dataframe } from "./Dataframe";
-import { Col, Cols } from "./types";
-import { Factor } from "./structs/Factor";
-import { Part } from "./Part";
-import { Composer } from "./Composer";
-import { IndexMap } from "./IndexMap";
+import Factor from "../structs/Factor";
+import { Cols } from "../types";
+import Composer from "./Composer";
+import Dataframe from "./Dataframe";
+import IndexMap from "./IndexMap";
+import Part from "./Part";
 
-export class Partition<T extends Cols> {
+export default class Partition<T extends Cols> {
   parts: Accessor<Record<number, Part>>;
   computed: Accessor<Dataframe<Cols>>;
   indexMap: Accessor<IndexMap>;

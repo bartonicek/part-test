@@ -3,11 +3,11 @@ import { Primitive } from "../types";
 import { Disc, disc, num } from "./Scalar";
 import { Variable } from "./Variable";
 
-export class Factor implements Variable<string> {
+export default class Factor implements Variable<string> {
   constructor(
     public indices: Set<number>,
     public indexArray: number[],
-    public indexPositions: Record<number, number[]>,
+    public indexPositions: Record<number, Set<number>>,
     public indexLabels: Record<number, Record<string, any>>,
     public meta: Record<string, Primitive | Primitive[]>
   ) {}
@@ -25,7 +25,7 @@ export class Factor implements Variable<string> {
 
     const indices = new Set<number>();
     const indexArray: number[] = [];
-    const indexPositons = {} as Record<number, number[]>;
+    const indexPositons = {} as Record<number, Set<number>>;
     const indexLabels = {} as Record<number, Record<string, any>>;
     const labelIndexMap: Record<string, number> = {};
 
@@ -39,12 +39,12 @@ export class Factor implements Variable<string> {
       }
       const index = labelIndexMap[v];
       indexLabels[index] = { level: disc(v) };
-      indexPositons[index] = [];
+      indexPositons[index] = new Set();
     }
 
     for (let i = 0; i < array.length; i++) {
       const index = labelIndexMap[array[i].toString()];
-      indexPositons[index].push(i);
+      indexPositons[index].add(i);
       indexArray.push(index);
     }
 
@@ -69,7 +69,7 @@ export class Factor implements Variable<string> {
 
     let indices = new Set<number>();
     const indexArray: number[] = [];
-    const indexPositions = {} as Record<number, number[]>;
+    const indexPositions = {} as Record<number, Set<number>>;
     const indexLabels = {} as Record<number, Record<string, any>>;
 
     const breaks = Array(nbins + 1);
@@ -79,7 +79,7 @@ export class Factor implements Variable<string> {
       breaks[j] = breakMin + j * width;
 
       if (j < 1) continue;
-      indexPositions[j - 1] = [];
+      indexPositions[j - 1] = new Set();
       indexLabels[j - 1] = {
         binMin: num(breaks[j - 1]),
         binMax: num(breaks[j]),
@@ -90,7 +90,7 @@ export class Factor implements Variable<string> {
       const index = breaks.findIndex((br) => br >= array[i]) - 1;
       indices.add(index);
       indexArray.push(index);
-      indexPositions[index].push(i);
+      indexPositions[index].add(i);
     }
 
     const meta = { breaks };
@@ -111,7 +111,7 @@ export class Factor implements Variable<string> {
 
     const indices = new Set<number>();
     const indexArray: number[] = [];
-    const indexPositions = {} as Record<number, number[]>;
+    const indexPositions = {} as Record<number, Set<number>>;
     const indexLabels = {} as Record<number, Record<string, any>>;
 
     for (let i = 0; i < factor1.indexArray.length; i++) {
@@ -119,7 +119,7 @@ export class Factor implements Variable<string> {
       const combinedIndex = parseInt([f1i, f2i].join("0"), 10);
 
       if (!(combinedIndex in indexPositions)) {
-        indexPositions[combinedIndex] = [];
+        indexPositions[combinedIndex] = new Set();
       }
 
       if (!(combinedIndex in indexLabels)) {
@@ -127,7 +127,7 @@ export class Factor implements Variable<string> {
         indexLabels[combinedIndex] = combinedLabel;
       }
 
-      indexPositions[combinedIndex].push(i);
+      indexPositions[combinedIndex].add(i);
       indices.add(combinedIndex);
       indexArray.push(combinedIndex);
     }

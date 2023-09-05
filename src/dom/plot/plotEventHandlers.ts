@@ -1,5 +1,5 @@
-import { toInt } from "../funs";
-import { Plot } from "./Plots";
+import { toInt } from "../../funs";
+import Plot from "./Plots";
 
 export const onResize = (plot: Plot) => () => {
   const { setWidth, setHeight } = plot.store;

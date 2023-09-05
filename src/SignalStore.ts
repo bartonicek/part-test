@@ -1,6 +1,6 @@
-import { Accessor, Setter, createSignal } from "solid-js";
-import { MapFn } from "./types";
-import { call } from "./funs";
+import { Accessor, Setter, createSignal, untrack } from "solid-js";
+import { Dict, MapFn } from "./types";
+import { call, entries, keys } from "./funs";
 
 export type Getters = Record<string, Accessor<any>>;
 export type Setters = Record<string, Setter<any>>;
@@ -30,7 +30,16 @@ type SetOverload<U extends Setters, K extends keyof U> = {
 export class SignalStore<T extends Getters, U extends Setters> {
   constructor(public getters: T, public setters: U) {}
 
-  static fromDict = <V extends Record<string, any>>(dict: V) => {
+  static fromSignal = <V extends Accessor<Dict>>(signal: V) => {
+    type U = V extends Accessor<infer D> ? D : never;
+    const getters = {} as { [key in keyof U]: Accessor<U[key]> };
+
+    const once = untrack(signal) as U;
+    for (const k of keys(once)) getters[k] = () => (signal() as U)[k];
+    return new SignalStore(getters, {});
+  };
+
+  static fromDict = <V extends Dict>(dict: V) => {
     const getters = {} as { [key in keyof V]: Accessor<V[key]> };
     for (const [k, v] of Object.entries(dict)) getters[k as keyof V] = () => v;
     return new SignalStore(getters, {});

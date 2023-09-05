@@ -1,6 +1,6 @@
 import { Accessor, untrack } from "solid-js";
 
-export class IndexMap {
+export default class IndexMap {
   map: Record<number, number>;
 
   constructor(

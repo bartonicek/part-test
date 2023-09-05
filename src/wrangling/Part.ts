@@ -1,16 +1,16 @@
 import { Accessor, createMemo } from "solid-js";
-import { Composer } from "./Composer";
-import { Dataframe } from "./Dataframe";
-import { flow } from "./funs";
+import Composer from "./Composer";
+import Dataframe from "./Dataframe";
+import { flow } from "../funs";
 
 const stackSymbol = Symbol("stack");
 
-export class Part {
+export default class Part {
   computed: Accessor<any>;
 
   constructor(
     public data: Dataframe<any>,
-    public indices: number[],
+    public indices: Set<number>,
     public labels: Record<string, any>,
     public composer: Composer<any, any, any>,
     public parent?: Part
