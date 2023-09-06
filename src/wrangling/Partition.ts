@@ -1,15 +1,15 @@
-import { Accessor, createMemo } from "solid-js";
+import { Accessor, createMemo, untrack } from "solid-js";
 import Factor from "../structs/Factor";
 import { Cols } from "../types";
 import Composer from "./Composer";
 import Dataframe from "./Dataframe";
 import IndexMap from "./IndexMap";
 import Part from "./Part";
+import { Scalar } from "../structs/Scalar";
 
 export default class Partition<T extends Cols> {
-  parts: Accessor<Record<number, Part>>;
+  parts: Accessor<Record<number, Record<string, Scalar<any>>>>;
   computed: Accessor<Dataframe<Cols>>;
-  indexMap: Accessor<IndexMap>;
 
   constructor(
     public data: Dataframe<T>,
@@ -19,24 +19,30 @@ export default class Partition<T extends Cols> {
   ) {
     this.parts = createMemo(this.getParts);
     this.computed = createMemo(this.compute);
-    this.indexMap = () =>
-      new IndexMap(this.factor().indexArray, this.parent?.factor().indexArray);
   }
 
   getParts = () => {
     const factor = this.factor();
+    const parentFactor = untrack(this.parent?.factor ?? (() => ({})));
+    const parentParts = this.parent?.parts();
+
+    const indexMap = new IndexMap(
+      factor.indexArray,
+      (parentFactor as Factor)?.indexArray
+    );
 
     const { data, composer } = this;
     const { indices, indexPositions, indexLabels } = factor;
-    const parts: Record<number, Part> = {};
+    const parts: Record<number, Record<string, Scalar<any>>> = {};
 
     for (const index of indices) {
       parts[index] = new Part(
         data,
         indexPositions[index],
         indexLabels[index],
-        composer
-      );
+        composer,
+        parentParts?.[indexMap.parentIndex(index)]
+      ).compute();
     }
 
     return parts;
@@ -45,8 +51,8 @@ export default class Partition<T extends Cols> {
   compute = () => {
     const parts = Object.values(this.parts());
 
-    const resultData = Dataframe.fromRow(parts[0].computed());
-    for (let i = 1; i < parts.length; i++) resultData.push(parts[i].computed());
+    const resultData = Dataframe.fromRow(parts[0]);
+    for (let i = 1; i < parts.length; i++) resultData.push(parts[i]);
 
     return resultData;
   };

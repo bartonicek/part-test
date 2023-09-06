@@ -1,26 +1,13 @@
 import { Accessor, Setter, createSignal, untrack } from "solid-js";
-import { Dict, MapFn } from "./types";
-import { call, entries, keys } from "./funs";
+import { Dict, Fn, MapFn, PickByValue, Primitive, ScalarOf } from "./types";
+import { call, entries, isPrimitive, isScalar, keys } from "./funs";
+import { Scalar } from "./structs/Scalar";
 
 export type Getters = Record<string, Accessor<any>>;
 export type Setters = Record<string, Setter<any>>;
 
 type SetterValue<T> = T extends Setter<infer U> ? U : never;
 type SetterUpdateFn<T> = T extends Setter<infer U> ? (prev: U) => U : never;
-
-// type BindOverload<G extends Getters, S extends Setters> = {
-//   <K extends string, V extends any>(key: K, bindfn: () => V): SignalStore<
-//     G & { [key in K]: Accessor<V> },
-//     S
-//   >;
-//   <K extends string, V extends any>(
-//     key: K,
-//     bindfn: (getters: G) => V
-//   ): SignalStore<
-//     G & { [key in K]: Accessor<V> },
-//     S & { [key in K]: Setter<V> }
-//   >;
-// };
 
 type SetOverload<U extends Setters, K extends keyof U> = {
   (key: K, value: SetterValue<U[K]>): SignalStore<any, any>;
@@ -45,27 +32,31 @@ export class SignalStore<T extends Getters, U extends Setters> {
     return new SignalStore(getters, {});
   };
 
-  bind = <
-    K extends string,
-    V extends any,
-    G extends T = T & { [key in K]: Accessor<V> },
-    S extends U = U & { [key in K]: Setter<V> }
-  >(
-    key: K,
-    bindfn: MapFn<T | never, V>
-  ): SignalStore<G, S> => {
-    const getters = this.getters as G;
-    const setters = this.setters as S;
+  bind = <V extends Record<string, Scalar<any> | ((getters: T) => any)>>(
+    bindobj: V
+  ) => {
+    const getters = this.getters as Getters;
+    const setters = this.setters as Setters;
 
-    if (!bindfn.length) {
-      const [getter, setter] = createSignal(bindfn(getters));
-      Object.defineProperty(getters, key, { value: getter });
-      Object.defineProperty(setters, key, { value: setter });
-      return new SignalStore(getters, setters);
+    for (const [k, v] of entries(bindobj)) {
+      const key = k as string;
+      if (isScalar(v)) {
+        const [getter, setter] = createSignal(v);
+        getters[key] = getter;
+        setters[key] = setter;
+      } else {
+        getters[key] = () => v(this.getters);
+      }
     }
 
-    Object.defineProperty(getters, key, { value: () => bindfn(getters) });
-    return new SignalStore(getters, setters as S);
+    return new SignalStore(
+      getters as T & {
+        [key in keyof V]: V[key] extends Fn
+          ? Accessor<ReturnType<V[key]>>
+          : Accessor<V[key]>;
+      },
+      setters as T & PickByValue<V, Primitive>
+    );
   };
 
   get = <K extends keyof T>(key: K): ReturnType<T[K]> => {

@@ -29,10 +29,10 @@ export const GroupLabels = {
   129: { group: 4, transient: false },
 } as const;
 
-const Groups = [4, 3, 2, 1, 132, 131, 130, 129];
-const TransientGroups = [4, 3, 2, 1];
+const groups = [4, 3, 2, 1, 132, 131, 130, 129];
+const transientGroups = [4, 3, 2, 1];
 
-const indices = new Set(Groups);
+const indices = new Set(groups);
 const indexPositions = {
   4: new Set<number>(),
   3: new Set<number>(),
@@ -85,7 +85,7 @@ export default class Marker {
 
       if (!cases.length) return;
 
-      for (const group of Groups) {
+      for (const group of groups) {
         for (const i of cases) indexPositions[group].delete(i);
       }
 
@@ -111,7 +111,7 @@ export default class Marker {
 
   clearAll = () => {
     const n = untrack(this.n);
-    for (const group of Groups) this.indexPositions[group].clear();
+    for (const group of groups) this.indexPositions[group].clear();
     for (let i = 0; i < n; i++) this.indexPositions[Group.Group1].add(i);
     this.setIndexArray(Array(this.n()).fill(Group.Group1));
   };
@@ -120,7 +120,7 @@ export default class Marker {
     const { indexPositions, transientCases } = this;
     const indexArray = [...untrack(this.indexArray)];
 
-    for (const group of TransientGroups) indexPositions[group].clear();
+    for (const group of transientGroups) indexPositions[group].clear();
 
     for (const i of transientCases) {
       indexArray[i] = removeTransient(indexArray[i]);

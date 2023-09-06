@@ -1,4 +1,5 @@
-import { Dict } from "./types";
+import { Disc, Num, Scalar } from "./structs/Scalar";
+import { Dict, Primitive } from "./types";
 
 // Basic meta functions
 export const nothing = () => undefined;
@@ -13,6 +14,13 @@ export const flow = (...fns: Function[]) => {
 
 // Unary functions
 export const toInt = (x: string) => parseInt(x, 10);
+export const isPrimitive = (x: any): x is Primitive => {
+  return ["number", "string", "boolean"].includes(typeof x);
+};
+export const isScalar = (x: any): x is Scalar<any> => {
+  return x instanceof Num || x instanceof Disc;
+};
+export const unwrap = <T>(x: Scalar<T>) => x.value();
 
 // Binary functions
 export const diff = (x: number, y: number) => x - y;
@@ -56,7 +64,17 @@ export const values = <T extends Dict, K extends keyof T>(x: T) => {
 export const entries = <T extends Dict, K extends keyof T>(x: T) => {
   return Object.entries(x) as { [key in K]: [key, T[key]] }[K][];
 };
-export const firstProp = <T extends Dict>(x: T) => x[Object.keys(x)[0]];
+export const firstKey = <T extends Dict>(x: T) => Object.keys(x)[0] as keyof T;
+export const firstProp = <T extends Dict>(x: T) => x[firstKey(x)];
+
+export const unwrapAll = <T extends Record<string, Scalar<any>>>(x: T) => {
+  const result = {} as Dict;
+  for (const [k, v] of entries(x)) {
+    if (!v?.value) continue;
+    result[k as string] = v.value();
+  }
+  return result;
+};
 
 export const disjointUnion = <T extends Dict, U extends Dict>(
   object1: T,

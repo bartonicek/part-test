@@ -4,9 +4,7 @@ import Factor from "./Factor";
 import { Disc, Num, Scalar } from "./Scalar";
 
 export type Variable<T> = {
-  meta: Record<string, any>;
   ith: (index: number) => Scalar<T>;
-  push: (scalar: Scalar<T>) => void;
 };
 
 export class NumArray implements Variable<number> {
@@ -26,13 +24,20 @@ export class NumArray implements Variable<number> {
     this.meta.sum += value;
     this.array.push(value);
   };
+
+  bin = (width?: Num, anchor?: Num) => {
+    return Factor.bin(this.array, width, anchor);
+  };
 }
 
 export class DiscArray implements Variable<string> {
   meta: Record<string, any>;
 
   constructor(private array: string[]) {
-    this.meta = { levels: sortStrings(Array.from(new Set(array))) };
+    this.meta = {
+      n: array.length,
+      levels: sortStrings(Array.from(new Set(array))),
+    };
   }
 
   ith = (index: number) => Disc.fromValue(this.array[index]);

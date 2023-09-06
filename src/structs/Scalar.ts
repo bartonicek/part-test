@@ -3,18 +3,18 @@ import { Value, ValueLike, View } from "./ValueLike";
 import { DiscArray, NumArray } from "./Variable";
 
 export class Num {
-  constructor(public valueLike: ValueLike<number>, private metadata?: Dict) {}
+  constructor(private valueLike: ValueLike<number>, public meta?: Dict) {}
 
-  static fromValue = (value: number, metadata?: Dict) => {
-    return new Num(new Value(value), metadata);
+  static fromValue = (value: number, meta?: Dict) => {
+    return new Num(new Value(value), meta);
   };
 
-  static fromView = (array: number[], index: number, metadata?: Dict) => {
-    return new Num(new View(array, index), metadata);
+  static fromView = (array: number[], index: number, meta?: Dict) => {
+    return new Num(new View(array, index), meta);
   };
 
-  meta = () => this.metadata;
   value = () => this.valueLike.value();
+  ith = () => this;
   toVariable = () => new NumArray([this.valueLike.value()]);
 
   increment = () => Num.fromValue(this.value() + 1);
@@ -38,10 +38,13 @@ export class Num {
 }
 
 export class Disc {
-  constructor(public valueLike: ValueLike<string | number>) {}
+  constructor(
+    private valueLike: ValueLike<string | number>,
+    public meta?: Dict
+  ) {}
 
-  static fromValue = (value: string | number) => {
-    return new Disc(new Value(value));
+  static fromValue = (value: string | number, meta?: Dict) => {
+    return new Disc(new Value(value), meta);
   };
 
   static fromView = <T extends string | number>(array: T[], index: number) => {
@@ -49,9 +52,10 @@ export class Disc {
   };
 
   value = () => this.valueLike.value();
+  ith = () => this;
   toVariable = () => new DiscArray([this.valueLike.value().toString()]);
 
-  paste = (other: Disc) => {
+  paste = (other: Num | Disc) => {
     return Disc.fromValue(`${this.value()}${other.value()}`);
   };
 }

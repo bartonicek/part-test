@@ -1,7 +1,7 @@
 import { Accessor, createMemo } from "solid-js";
 import Composer from "./Composer";
 import Dataframe from "./Dataframe";
-import { flow } from "../funs";
+import { flow, unwrapAll } from "../funs";
 
 const stackSymbol = Symbol("stack");
 
@@ -13,15 +13,10 @@ export default class Part {
     public indices: Set<number>,
     public labels: Record<string, any>,
     public composer: Composer<any, any, any>,
-    public parent?: Part
+    public parent?: Record<string | number | symbol, any>
   ) {
     this.computed = this.compute;
   }
-
-  update = () => {
-    this.computed = createMemo(this.compute);
-    return this;
-  };
 
   compute = () => {
     const { reduce, map, stack } = this;
@@ -48,7 +43,9 @@ export default class Part {
     const { labels } = this;
     const { mapfn, stacker } = this.composer;
 
-    const mapResult = mapfn({ ...reduceResult, ...labels });
+    const mapResult = mapfn(
+      Object.assign(reduceResult, labels, { parent: this.parent })
+    );
     mapResult[stackSymbol] = stacker.initialfn();
 
     return mapResult;
@@ -58,12 +55,13 @@ export default class Part {
     if (!(this.composer.state.stacked && this.parent)) return mapResult;
 
     const { stacker } = this.composer;
-    const parentComputed = this.parent.computed();
+    const parentComputed = this.parent;
 
     parentComputed[stackSymbol] = stacker.reducefn(
       parentComputed[stackSymbol],
       mapResult
     );
+
     Object.assign(mapResult, parentComputed[stackSymbol]);
 
     return mapResult;

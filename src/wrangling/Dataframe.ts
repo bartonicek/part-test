@@ -42,9 +42,12 @@ export default class Dataframe<T extends Cols> {
 
   static fromRow = <U extends Row>(row: U) => {
     const cols = {} as { [key in keyof U]: Col };
+
     for (const [k, v] of entries(row)) {
+      if (!v?.toVariable) continue;
       cols[k] = v.toVariable();
     }
+
     return new Dataframe(cols);
   };
 
@@ -61,6 +64,17 @@ export default class Dataframe<T extends Cols> {
     const result = {} as { [key in keyof T]: any };
     for (const [k, v] of entries(this.cols)) {
       result[k] = v.ith(index).value();
+    }
+    return result;
+  };
+
+  unwrapRows = () => {
+    const result = {} as Record<number, any>;
+    for (let i = 0; i < this.meta.n; i++) {
+      result[i] = {} as { [key in keyof T]: any };
+      for (const [k, v] of entries(this.cols)) {
+        result[i][k] = v.ith(i).value();
+      }
     }
     return result;
   };

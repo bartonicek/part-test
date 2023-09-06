@@ -1,6 +1,6 @@
 import { diff, disjointUnion, minMax, sortStrings } from "../funs";
 import { Primitive } from "../types";
-import { Disc, disc, num } from "./Scalar";
+import { Disc, Num, disc, num } from "./Scalar";
 import { Variable } from "./Variable";
 
 export default class Factor implements Variable<string> {
@@ -10,13 +10,27 @@ export default class Factor implements Variable<string> {
     public indexPositions: Record<number, Set<number>>,
     public indexLabels: Record<number, Record<string, any>>,
     public meta: Record<string, Primitive | Primitive[]>
-  ) {}
+  ) {
+    this.meta.n = indexArray.length;
+  }
 
   ith = (index: number) => {
-    return Disc.fromValue(this.indexArray[index]);
+    return Disc.fromValue(
+      this.indexArray[index],
+      this.indexLabels[this.indexArray[index]]
+    );
   };
 
   push = (scalar: Disc) => {};
+
+  static mono = (n: number) => {
+    const indices = new Set([0]);
+    const indexArray = Array(n).fill(0);
+    const indexPositions = { 0: new Set(Array.from(Array(n), (_, i) => i)) };
+    const indexLabels = { 0: {} };
+
+    return new Factor(indices, indexArray, indexPositions, indexLabels, {});
+  };
 
   static from = <T extends string | number>(array: T[], levels?: T[]) => {
     levels = levels ?? Array.from(new Set(array));
@@ -53,19 +67,15 @@ export default class Factor implements Variable<string> {
     return new Factor(indices, indexArray, indexPositons, indexLabels, meta);
   };
 
-  static bin = (
-    array: number[],
-    options?: { width?: number; anchor?: number }
-  ) => {
+  static bin = (array: number[], width?: Num, anchor?: Num) => {
     const [min, max] = minMax(array);
 
-    let { width, anchor } = options ?? {};
-    const nbins = width ? Math.ceil((max - min) / width) + 1 : 10;
-    width = options?.width ?? (max - min) / (nbins - 1);
-    anchor = options?.anchor ?? min;
+    const nbins = width ? Math.ceil((max - min) / width.value()) + 1 : 10;
+    const w = width?.value() ?? (max - min) / (nbins - 1);
+    const a = anchor?.value() ?? min;
 
-    const breakMin = min - width + ((anchor - min) % width);
-    const breakMax = max + width - ((max - anchor) % width);
+    const breakMin = min - w + ((a - min) % w);
+    const breakMax = max + w - ((max - a) % w);
 
     let indices = new Set<number>();
     const indexArray: number[] = [];
@@ -76,18 +86,20 @@ export default class Factor implements Variable<string> {
     [breaks[0], breaks[breaks.length - 1]] = [breakMin, breakMax];
 
     for (let j = 0; j < breaks.length; j++) {
-      breaks[j] = breakMin + j * width;
-
-      if (j < 1) continue;
-      indexPositions[j - 1] = new Set();
-      indexLabels[j - 1] = {
-        binMin: num(breaks[j - 1]),
-        binMax: num(breaks[j]),
-      };
+      breaks[j] = breakMin + j * w;
     }
 
     for (let i = 0; i < array.length; i++) {
       const index = breaks.findIndex((br) => br >= array[i]) - 1;
+
+      if (!(index in indexPositions)) indexPositions[index] = new Set();
+      if (!(index in indexLabels)) {
+        indexLabels[index] = {
+          binMin: num(breaks[index]),
+          binMax: num(breaks[index + 1]),
+        };
+      }
+
       indices.add(index);
       indexArray.push(index);
       indexPositions[index].add(i);
